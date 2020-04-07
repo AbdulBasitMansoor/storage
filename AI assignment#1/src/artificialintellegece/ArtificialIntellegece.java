@@ -11,6 +11,22 @@ package artificialintellegece;
  */
 import java.util.*;
 
+ class node{
+        int state;
+        int action;
+        int cost;
+        node parent;
+
+    public node(int state, int action, int cost, node parent) {
+        this.state = state;
+        this.action = action;
+        this.cost = cost;
+        this.parent = parent;
+    }
+        
+        
+    }
+
 
 public class ArtificialIntellegece {
 
@@ -21,50 +37,24 @@ public class ArtificialIntellegece {
     public static String[] possibleStates;
     public static String[] possibleActions;
     public static String[] problem;
-    public static int[] header;
+    public int noOfActions;
+    public int noOfTestCases;
+    public int noOfStates;
     public static int[][] matrix;
-    public static String[] splittedCase;
-    public static Queue<node> frontier = new LinkedList();
-    public static HashSet<Integer> exploredSet = new HashSet<Integer>();
+    public static String[][] splittedCases;
+    public Queue<node> frontier = new LinkedList();
+    public HashSet<Integer> exploredSet = new HashSet<Integer>();
     
-    public static class node{
-        int state;
-        int action;
-        int cost;
-        node parent;
-        
-        public boolean goalTest(int k){
-         
-         if(this.state==k)
-         {
-             return true;
-         }
-         return false;
-     }
-    }
-    
-    public static void main(String[] args) {
-        
-        readHeader();
-        
-        possibleStates(header[0]);
-        possibleActions(header[1]);
-        transitionMatrix(header[0],header[1]);
-        readTestCases(header[2]);
-       
-        display(splittedCase);
-        
-    }
-    
-    public static void readHeader(){
+   
+    public void readHeader(){
         
         Scanner Myinput = new Scanner(System.in); 
         System.out.println("Input the number of states : ");
-        header[0] = Myinput.nextInt(); 
+        noOfStates = Myinput.nextInt(); 
         System.out.println("Input the number of actions: ");
-        header[1] = Myinput.nextInt();
+        noOfActions = Myinput.nextInt();
         System.out.println("Input the number of test cases : ");
-        header[2] = Myinput.nextInt();
+        noOfTestCases = Myinput.nextInt();
         
 }
     
@@ -109,82 +99,109 @@ public class ArtificialIntellegece {
      }   
      
      
-     public static void arraySplit(){
-        // splittedCases = testCases.split("/t ");
+     public void arraySplit(){
+         splittedCases = new String[noOfTestCases][2];
+         for(int i=0;i<noOfTestCases;i++)
+         {
+             String[] s= possibleStates[i].split("\t");
+             splittedCases[i][0]=s[0];
+             splittedCases[i][1]=s[1];
+         }
+      
+     }
+     
+     public int determineState(String s){
+     
+         for(int i=0;i<noOfStates;i++)
+         {
+             if(s==possibleStates[i])
+                 return i;
+         }
+         return -1;
+     }
+             
+     public boolean isGoal(int state,int goal){
+         if(state==goal)
+             return true;
+         return false;   
      }
      
      
      
-     
-     public static node algorithm(String [] problem)   {
+     public void algorithm(String [] problem)   {
          
-         node Node=new node();
-         for(int i=0;i<header[0];i++)
+         String[] toPrint = new String[noOfStates];
+         for(int i=0;i<noOfTestCases;i++)
          {
-             if(problem[0]==possibleStates[i])
-             {
-                 Node.state=i;
-                 Node.cost=0;
-                 Node.action= -1;
-                 Node.parent=null;
-             }
-         }
-         int goalState=0;
-         for(int i=0;i<header[0];i++)
-         {
-             if(problem[1] == possibleStates[i])
-             {
-                 goalState=i;
-             }
-         }
-         if(Node.goalTest(goalState))
-         {
-             return Node;
-         }
-         else
-         {
+             node Node=new node(determineState(splittedCases[i][0]),-1,0,null);
              frontier.add(Node);
-         }
-         node child = new node();
-      
-         do{
-             exploredSet.add(frontier.peek().action);
-             frontier.poll();
-             for(int i=0;i<header[1];i++)
+             int goal = determineState(splittedCases[i][1]);
+             boolean noPlan = false;
+             if(Node.state == -1 || goal == -1)
+                 noPlan=true;
+             boolean alreadyGoalState = false;
+             if(Node.state==determineState(splittedCases[i][1]))
              {
-                 child.state= matrix[Node.state][i];
-                 child.cost=Node.cost+1;
-                 child.action=i;
-                 child.parent= Node;
-                 if(child.goalTest(i))
+                 alreadyGoalState=true;
+                 toPrint[i]="Start and Goal states are same, So goal achieved.";
+             }
+             node goalFound = null;
+             while(!frontier.isEmpty() && !noPlan && !alreadyGoalState)
+             {
+                 node newNode = frontier.remove();
+                 for(int k=0;k<noOfStates;k++)
                  {
-                     return child;
+                     int transition = matrix[newNode.state][k];
+                     node temp = new node(transition,k,newNode.cost+1,newNode);
+                     if(transition!=newNode.state ){
+                         if(isGoal(transition,goal)){
+                             goalFound=temp;
+                             break;
+                         }
+                         else
+                         {
+                             if(!exploredSet.contains(temp) && !frontier.contains(temp))
+                                 frontier.add(temp);
+                         }
+                     }
+                         
+                     
+                 }
+             }
+             if(!alreadyGoalState)
+             {
+                 if(goalFound!=null)
+                 {
+                     while(goalFound!=null)
+                     {
+                         if(goalFound.action != -1)
+                         {
+                             toPrint[i]=possibleActions[goalFound.action] + "->" + toPrint[i];
+                             
+                         }
+                         else
+                             goalFound = goalFound.parent;
+                     }
                  }
                  else
-                 {
-                     frontier.add(child);
-                 }
+                     toPrint[i]=null;
              }
-             Node = frontier.peek();
-             
-           }while(frontier != null);
-         return Node;
+             for(int m =0;m<noOfTestCases;m++)
+                 System.out.println(toPrint[m]);
+         }       
+            
      }
-     public static void display(String [] problem)
-     {
-         node result = algorithm(problem);
-         if(result.action==-1)
-         {
-             System.out.println("Agent is on its position already.");
-         }
-         else
-         {
-             if(result.action==0)
-                 System.out.println("clean->");
-             if(result.action==1)
-                 System.out.println("MoveToRoom1->");
-             if(result.action==2)
-                 System.out.println("MoveToRoom2->");
-         }
-     }
+     
+     public static void main(String[] args) {
+        
+       ArtificialIntellegece graphSearch = new  ArtificialIntellegece();
+       graphSearch.readHeader();
+       graphSearch.possibleStates(graphSearch.noOfStates);
+       graphSearch.possibleActions(graphSearch.noOfActions);
+       graphSearch.transitionMatrix(graphSearch.noOfStates,graphSearch.noOfActions);
+       graphSearch.readTestCases(graphSearch.noOfTestCases);
+       graphSearch.arraySplit();
+       graphSearch.algorithm(graphSearch.problem);   
+    }
 }
+
